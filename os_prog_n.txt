@@ -1,0 +1,214 @@
+#include<iostream>
+#include<mutex>
+using namespace std;
+int wr = 0;
+struct semaphore
+{
+    int mutex;
+    int rcount;
+    int rwait;
+    bool wrt;
+};
+
+struct csemaphore
+{
+    int cmutex;
+    int crcount;
+    int crwait;
+    bool cwrt;
+};
+
+void addReader(struct semaphore* s, struct csemaphore* c)
+{
+    if ((s->rcount > 0 || c->crcount > 0) && (s->mutex == 0 || c->cmutex == 2))
+    {
+        s->rcount++;
+        c->crcount++;
+        cout << "\nReader already in queue." << endl;
+        if ((s->rcount == 0 || c->crcount == 0) && wr == 0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+    }
+    else if (s->mutex == 0 && s->rcount == 0 || c->cmutex == 2 && c->crcount == 0 || wr==1)
+    {
+        cout << "Sorry, File isopen in Write mode.\nNew Reader added to queue." << endl;
+        
+        s->rwait++;
+        c->crwait++;
+        if ((s->rcount == 0 || c->crcount == 0) && wr==0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+    }
+    else
+    {
+        cout << "Reader Process added." << endl;
+        c->crcount++;
+        c->cmutex--;
+        s->rcount++;
+        s->mutex--;
+        if ((s->rcount == 0 || c->crcount == 0) && wr == 0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+    }
+    return;
+}
+void addWriter(struct semaphore* s, struct csemaphore* c)
+{
+    /*if (s->rcount > 1 || c->crcount > 1)
+     {
+         s->rcount++;
+         c->crcount++;
+         cout << "\nWriter already in queue." << endl;
+     }*/
+    if ((s->rcount==0 || c->crcount == 0) && wr <1)
+    {
+        c->cmutex--;
+        c->cwrt = 1;
+        s->mutex--;
+        s->wrt = 1;
+        wr=1;
+        cout << "\nWriter Process added." << endl;
+        if ((s->rcount == 0 || c->crcount == 0) && wr==0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+    }
+    else if (s->wrt || c->cwrt || wr==1) {
+        cout << "Sorry, Writer already operational." << endl;
+        if ((s->rcount == 0 || c->crcount == 0) && wr == 0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+    }
+    else
+    {
+        cout << "Sorry, File open in Read mode." << endl;
+        if ((s->rcount == 0 || c->crcount == 0) && wr == 0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+    }
+    return;
+}
+
+void removeReader(struct semaphore* s, struct csemaphore* c)
+{
+    if (s->rcount == 0 || c->crcount == 0)
+    {
+        cout << "No readers to remove." << endl;
+        if ((s->rcount == 0 || c->crcount == 0) && wr == 0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+    }
+    else
+    {
+        cout << "Reader Removed." << endl;
+        c->crcount--;
+        c->cmutex++;
+        s->rcount--;
+        s->mutex++;
+        if ((s->rcount == 0 || c->crcount == 0) && wr == 0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+    }
+    return;
+}
+void removeWriter(struct semaphore* s, struct csemaphore* c)
+{
+    if (s->wrt == 0 || c->cwrt == 0) cout << "No Writer to Remove" << endl;
+    else
+    {
+        cout << "Writer Removed" << endl;
+        c->cmutex++;
+        c->cwrt = 0;
+        s->mutex++;
+        s->wrt = 0;
+        wr--;
+        if ((s->rcount == 0 || c->crcount == 0) || wr == 0)
+        {
+            cout << "\nNo. of processes in CS is 0. ";
+
+        }
+        else {
+            cout << "\nNo. of processes in CS is 1. ";
+        }
+        if (s->rwait != 0 || c->crwait != 0)
+        {
+            c->cmutex -= c->crwait;
+            c->crcount = c->crwait;
+            c->crwait = 0;
+            s->mutex -= s->rwait;
+            s->rcount = s->rwait;
+            s->rwait = 0;
+            cout << "\nWaiting Readers Added:" << s->rcount << endl;
+            if ((s->rcount == 0 || c->crcount == 0) && wr == 0)
+            {
+                cout << "\nNo. of processes in CS is 0. ";
+
+            }
+            else {
+                cout << "\nNo. of processes in CS is 1. ";
+            }
+        }
+    }
+}
+int main()
+{
+    struct semaphore S1 = { 1,0,0 };
+    struct csemaphore S2 = { 3,0,0 };
+    while (1)
+    {
+        cout << "\nOptions" << endl << "1. Add Reader." << endl << "2. Add Writer." << endl << "3. Remove Reader." << endl << "4. Remove Writer." << endl << "5. Exit.<<Choice : " << endl;
+        int choice;
+        cin >> choice;
+        switch (choice)
+        {
+        case 1: addReader(&S1, &S2); break;
+        case 2: addWriter(&S1, &S2); break;
+        case 3: removeReader(&S1, &S2); break;
+        case 4: removeWriter(&S1, &S2); break;
+        case 5: exit(0);
+        default: cout << "\nInvalid Entry!";
+        }
+    }
+    return 0;
+}
+
+
